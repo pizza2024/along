@@ -1,10 +1,10 @@
 # AGENTS.md
 
-Compact guidance for OpenCode sessions working in **Moodly** (Expo 52 / React Native 0.76 / TypeScript strict).
+Compact guidance for OpenCode sessions working in **Moodly** (Expo 54 / React Native 0.81 / React 19.1 / TypeScript strict).
 
 ## Commands
 
-- **Install (required flag):** `npm install --legacy-peer-deps` — without it, peer-dep conflicts (e.g. React 18.3.1 vs RN 0.76 expectations) break install.
+- **Install (required flag):** `npm install --legacy-peer-deps` — without it, peer-dep conflicts (e.g. React 19.1 vs RN 0.81 expectations) break install.
 - **Dev server:** `npx expo start` (add `--ios` / `--android` / `--web` for a specific target).
 - **First native run on a real device / Expo Go:** `npx expo prebuild` if the native module (expo-sqlite, expo-haptics, react-native-svg) is missing.
 - **Static web export:** `npx expo export --platform web`.
@@ -23,7 +23,7 @@ app/(tabs)/index.tsx      # the only screen — composes MoodCalendar + MoodButt
 src/components/           # MoodCalendar, MoodDayCell, MoodButton, MoodButtonRow, ProgressRing
 src/hooks/                # useCalendarData (db I/O), useLongPress (gesture)
 src/store/moodStore.ts    # zustand: selectedEmotion + mode ('aggregate' | 'single')
-src/db/                   # DbAdapter interface + createSqliteAdapter (real) + createInMemoryDb (test)
+src/db/                   # DbAdapter interface + createSqliteAdapter (native) + createInMemoryAdapter (web + tests)
 src/utils/                # date, color, aggregate, resolveCellColor (pure, fully unit-tested)
 src/constants/emotions.ts # 8-key palette with `order` (tiebreak uses lower order)
 src/types.ts              # EmotionKey, MoodEntry, CalendarCell, CalendarMode
@@ -31,7 +31,8 @@ src/types.ts              # EmotionKey, MoodEntry, CalendarCell, CalendarMode
 
 - **Path alias:** `@/*` → `./src/*`. Defined in both `tsconfig.json` and `vitest.config.ts` — keep them in sync if you change it.
 - **DB is a singleton** (`src/db/database.ts`). For unit tests, use `__setAdapter(createInMemoryDb())` from the same file, or pass the in-memory adapter directly into repository functions (`addEntry(db, …)`, `getEntriesByDateRange(db, …)`).
-- **expo-sqlite is imported with `@ts-ignore`** in `src/db/sqliteAdapter.ts` and `src/db/database.ts` because the package ships runtime-only on native. This is intentional — do not "fix" it.
+- **Platform-conditional DB selection** in `getDb()`: `Platform.OS === 'web'` → `createInMemoryAdapter()`; otherwise → lazy `require('expo-sqlite')` + `createSqliteAdapter`. The lazy `require` keeps `expo-sqlite` from being evaluated at module load on web, which would throw `Cannot find native module 'ExpoSQLite'`.
+- **Test in-memory fixture** (`src/db/__tests__/inMemoryDb.ts`) is a thin re-export of the production `createInMemoryAdapter` from `src/db/inMemoryAdapter.ts` — keep them in sync, or just extend the production one.
 
 ## Domain rules that are easy to break
 
@@ -65,3 +66,5 @@ src/types.ts              # EmotionKey, MoodEntry, CalendarCell, CalendarMode
 - `experiments.typedRoutes` is enabled in `app.json` — generated route types live in `.expo/types/`. If a route import breaks, run `npx expo customize tsconfig.json` or just `npx expo start` once to regenerate.
 - Button row width: `Math.min(72, Math.floor((width - 32) / 8))` in `app/(tabs)/index.tsx`. On screens narrower than ~320pt the row scrolls horizontally — known limitation, not a bug.
 - `useCalendarData().addEmotion` always writes to **today** (last element of `last30Days()`). It does not accept a date parameter.
+- **Web in-memory adapter is process-local** — data is lost on page reload. Persist with `localStorage`/`IndexedDB` if web persistence is needed.
+- **`app/_layout.tsx` installs a `console.warn` filter** at module top-level to silence `react-native-web`'s `Image: style.resizeMode is deprecated` warning (emitted by `expo-router`'s internal web render). All other warnings still print.
