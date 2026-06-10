@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, StyleSheet, Pressable, Text, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MoodCalendar } from '@/components/MoodCalendar';
+import { VirtualizedMoodCalendar } from '@/components/VirtualizedMoodCalendar';
 import { MoodButtonRow } from '@/components/MoodButtonRow';
 import { useCalendarData } from '@/hooks/useCalendarData';
 import { useMoodStore } from '@/store/moodStore';
 import { EMOTION_MAP } from '@/constants/emotions';
 
 export default function Home() {
-  const { cells, addEmotion } = useCalendarData();
+  const { blocks, currentMonthIndex, addEmotion, extendPast, extendFuture } = useCalendarData();
   const mode = useMoodStore((s) => s.mode);
   const toggleMode = useMoodStore((s) => s.toggleMode);
   const selected = useMoodStore((s) => s.selectedEmotion);
@@ -39,7 +39,13 @@ export default function Home() {
       </View>
 
       <View style={styles.calendarWrap}>
-        <MoodCalendar cells={cells} />
+        <VirtualizedMoodCalendar
+          blocks={blocks}
+          initialIndex={currentMonthIndex}
+          todayIndex={currentMonthIndex}
+          onExtendPast={extendPast}
+          onExtendFuture={extendFuture}
+        />
       </View>
 
       <View style={styles.divider} />
@@ -83,7 +89,7 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.6 },
   modeIcon: { fontSize: 20, color: '#666' },
   modeHint: { fontSize: 10, color: '#999', letterSpacing: 0.5 },
-  calendarWrap: { flex: 3, justifyContent: 'center' },
+  calendarWrap: { flex: 3 },
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: '#E5E5E5',
