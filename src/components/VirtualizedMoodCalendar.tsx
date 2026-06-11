@@ -13,10 +13,12 @@ import {
   FlatList,
   StyleSheet,
   Dimensions,
-  type ListRenderItemInfo,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  type LayoutChangeEvent,
+} from 'react-native';
+import type {
+  ListRenderItemInfo,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  LayoutChangeEvent,
 } from 'react-native';
 import { MonthGrid } from './MonthGrid';
 import type { MonthBlock } from '@/hooks/useCalendarData';

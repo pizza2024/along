@@ -14,7 +14,7 @@ export default function Home() {
   const selected = useMoodStore((s) => s.selectedEmotion);
   const selectedMeta = EMOTION_MAP[selected];
   const { width } = Dimensions.get('window');
-  const buttonSize = Math.min(72, Math.floor((width - 32) / 8));
+  const buttonSize = Math.min(88, Math.floor((width - 24) / 8));
 
   return (
     <SafeAreaView style={styles.root}>
