@@ -1,0 +1,8 @@
+{
+  "description": "项目私有配置文件。此文件中的内容仅在本机工具上生效，不会被纳入版本管理。",
+  "projectname": "moodly-weapp",
+  "setting": {
+    "compileHotReLoad": true,
+    "urlCheck": false
+  }
+}
