@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { ProgressRing } from './ProgressRing';
 import { useLongPress } from '@/hooks/useLongPress';
@@ -31,11 +31,19 @@ export function MoodButton({ emotionKey, size, onRecord }: Props) {
     onComplete: handleComplete,
   });
 
+  const webProps =
+    Platform.OS === 'web'
+      ? {
+          onContextMenu: (e: { preventDefault: () => void }) => e.preventDefault(),
+        }
+      : {};
+
   return (
     <Pressable
       onPress={() => setSelected(emotionKey)}
       onPressIn={lp.onPressIn}
       onPressOut={lp.onPressOut}
+      {...webProps}
       style={({ pressed }) => [
         styles.touch,
         { width: size, height: size },

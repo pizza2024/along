@@ -26,7 +26,8 @@ interface Row {
   key: EmotionKey;
 }
 
-const REPEATS = 3;
+const REPEATS = 5;
+const MIDDLE_COPY_INDEX = (REPEATS - 1) / 2;
 const ROW_GAP = 8;
 const ROW_PADDING = 12;
 
@@ -45,12 +46,14 @@ export function MoodButtonRow({ buttonSize, onRecord }: Props) {
   const lastActiveIdxRef = useRef<number | null>(null);
   const copyLen = EMOTIONS.length;
   const step = buttonSize + ROW_GAP;
+  const dangerLeft = copyLen;
+  const dangerRight = (REPEATS - 1) * copyLen;
 
   const onContentSizeChange = useCallback(() => {
     if (hasInitializedRef.current) return;
     hasInitializedRef.current = true;
     listRef.current?.scrollToOffset({
-      offset: ROW_PADDING + step * copyLen,
+      offset: ROW_PADDING + step * copyLen * MIDDLE_COPY_INDEX,
       animated: false,
     });
   }, [copyLen, step]);
@@ -61,7 +64,8 @@ export function MoodButtonRow({ buttonSize, onRecord }: Props) {
         e.nativeEvent.contentOffset.x,
         copyLen,
         step,
-        ROW_PADDING
+        ROW_PADDING,
+        REPEATS
       );
       if (result.needsWrap) {
         listRef.current?.scrollToOffset({
@@ -78,6 +82,24 @@ export function MoodButtonRow({ buttonSize, onRecord }: Props) {
       if (buttonSize <= 0) return;
       const offsetX = e.nativeEvent.contentOffset.x;
       const idx = Math.round((offsetX - ROW_PADDING) / step);
+
+      if (idx < dangerLeft || idx >= dangerRight) {
+        const result = computeInfiniteWrap(
+          offsetX,
+          copyLen,
+          step,
+          ROW_PADDING,
+          REPEATS
+        );
+        if (result.needsWrap) {
+          listRef.current?.scrollToOffset({
+            offset: result.nextOffset,
+            animated: false,
+          });
+        }
+        return;
+      }
+
       const prev = lastActiveIdxRef.current;
       if (prev === idx) return;
       lastActiveIdxRef.current = idx;
@@ -88,7 +110,7 @@ export function MoodButtonRow({ buttonSize, onRecord }: Props) {
         }
       }
     },
-    [buttonSize, step]
+    [buttonSize, copyLen, dangerLeft, dangerRight, step]
   );
 
   const renderItem = useCallback(
@@ -125,7 +147,7 @@ export function MoodButtonRow({ buttonSize, onRecord }: Props) {
       onMomentumScrollEnd={onMomentumScrollEnd}
       onContentSizeChange={onContentSizeChange}
       scrollEventThrottle={16}
-      initialNumToRender={copyLen * 2}
+      initialNumToRender={copyLen * 3}
       windowSize={5}
       maxToRenderPerBatch={copyLen}
       removeClippedSubviews

@@ -4,37 +4,55 @@ export interface InfiniteWrapResult {
   nextIdx: number;
 }
 
+const DEFAULT_REPEATS = 3;
+
 /**
- * Given a current scroll offset inside a tripled (or 2N+1)-repeated row,
+ * Given a current scroll offset inside an odd-repeated (3, 5, 7, …) row,
  * decide whether to wrap and to where.
  *
- * Data layout: [A][B][C] where A, B, C are identical copies of the base.
- * User starts in B. When the user scrolls into A we want to silently
- * jump them to the equivalent position in C (and vice versa), so the
- * loop feels endless.
+ * Data layout for `repeats = 5`: [A][B][C][D][E] where each copy is identical.
+ * User starts in the middle copy C. When the user scrolls into A or E (the
+ * outer copies) we silently jump them to the equivalent position in C, so
+ * the loop feels endless. B and D are the safety buffer; the user can be
+ * inside them and we do nothing.
+ *
+ * For `repeats = 3` (legacy): [A][B][C], user starts in B; A wraps to B
+ * and C wraps to B. The formula is the same with `MIDDLE_OFFSET_COPIES = 1`.
+ *
+ * The "wrap to center" design matters because the scroll handler also calls
+ * this from `onScroll` while the user is dragging. If we wrapped to the
+ * opposite outer edge, the user would ping-pong between A and E on every
+ * scroll tick. Wrapping to the center lands them in a stable position.
+ *
+ * `repeats` must be an odd integer ≥ 3. The "middle offset" is the number
+ * of copies between the start copy and either outer edge.
  */
 export function computeInfiniteWrap(
   offsetX: number,
   copyLen: number,
   step: number,
-  padding: number
+  padding: number,
+  repeats: number = DEFAULT_REPEATS
 ): InfiniteWrapResult {
   if (copyLen <= 0 || step <= 0) {
     return { needsWrap: false, nextOffset: offsetX, nextIdx: 0 };
   }
+  const middleOffsetCopies = (repeats - 1) / 2;
   const idx = Math.round((offsetX - padding) / step);
   if (idx < copyLen) {
+    const nextIdx = idx + middleOffsetCopies * copyLen;
     return {
       needsWrap: true,
-      nextIdx: idx + copyLen * 2,
-      nextOffset: padding + (idx + copyLen * 2) * step,
+      nextIdx,
+      nextOffset: padding + nextIdx * step,
     };
   }
-  if (idx >= copyLen * 2) {
+  if (idx >= (repeats - 1) * copyLen) {
+    const nextIdx = idx - middleOffsetCopies * copyLen;
     return {
       needsWrap: true,
-      nextIdx: idx - copyLen * 2,
-      nextOffset: padding + (idx - copyLen * 2) * step,
+      nextIdx,
+      nextOffset: padding + nextIdx * step,
     };
   }
   return { needsWrap: false, nextOffset: offsetX, nextIdx: idx };
