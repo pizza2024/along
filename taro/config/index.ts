@@ -20,11 +20,16 @@ export default (merge: any, _ctx: any, _env: any): IProjectConfig => {
       webpackChain(chain: any) {
         const sharedSrc = path.resolve(__dirname, '../../src');
         const taroSrc = path.resolve(__dirname, '../src');
+        const taroNm = path.resolve(__dirname, '../node_modules');
         chain.resolve.alias
           .set('@/components', path.resolve(taroSrc, 'components'))
           .set('@/pages', path.resolve(taroSrc, 'pages'))
           .set('@/db/database', path.resolve(taroSrc, 'db/database'))
-          .set('@', sharedSrc);
+          .set('@', sharedSrc)
+          .set('react', path.resolve(taroNm, 'react'))
+          .set('react/jsx-runtime', path.resolve(taroNm, 'react/jsx-runtime.js'))
+          .set('react-dom', path.resolve(taroNm, 'react-dom'));
+        chain.resolve.modules.clear().add(taroNm).add('node_modules');
         chain.module
           .rule('weapp-ttss')
           .test(/\.ttss$/)
