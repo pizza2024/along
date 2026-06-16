@@ -8,4 +8,5 @@ export default {
     backgroundColor: '#FAFAFA',
   },
   style: 'v2',
+  lazyCodeLoading: 'requiredComponents',
 };
