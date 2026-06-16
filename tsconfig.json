@@ -4,7 +4,9 @@
     "strict": true,
     "module": "ESNext",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@moodly/shared": ["./packages/shared/src/index.ts"],
+      "@moodly/shared/*": ["./packages/shared/src/*"]
     }
   },
   "include": [
@@ -13,5 +15,5 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
   ],
-  "exclude": ["node_modules", "taro", "dist"]
+  "exclude": ["node_modules", "taro", "dist", "packages"]
 }

@@ -1,38 +1,69 @@
 # AGENTS.md
 
-Compact guidance for OpenCode sessions working in **Moodly** (Expo 54 / React Native 0.81 / React 19.1 / TypeScript strict).
+Compact guidance for OpenCode sessions working in **Moodly** (pnpm monorepo).
 
 ## Commands
 
-- **Install (required flag):** `npm install --legacy-peer-deps` — without it, peer-dep conflicts (e.g. React 19.1 vs RN 0.81 expectations) break install.
-- **Dev server:** `npx expo start` (add `--ios` / `--android` / `--web` for a specific target).
-- **First native run on a real device / Expo Go:** `npx expo prebuild` if the native module (expo-sqlite, expo-haptics, react-native-svg) is missing.
-- **Static web export:** `npx expo export --platform web`.
-- **Tests:** `npm test` (vitest, single run) or `npm run test:watch`.
-- **Typecheck:** `npm run typecheck` (`tsc --noEmit`).
-- **Single test file:** `npx vitest run __tests__/aggregate.test.ts` — pattern is filename-based.
+- **Install (root):** `pnpm install` (pnpm workspace links packages/*).
+- **Expo dev server:** `npx expo start` (add `--ios` / `--android` / `--web`).
+- **WeChat Mini Program dev:** `cd packages/weapp && npm run dev:weapp` (taro watch → dist/).
+- **WeChat Mini Program build:** `cd packages/weapp && npm run build:weapp`.
+- **Open in WeChat DevTools:** import `packages/weapp/dist/`.
+- **Tests:** `npm test` (root vitest, single run, excludes packages/*).
+- **Weapp tests:** `cd packages/weapp && npm test`.
+- **Typecheck root:** `npm run typecheck` (`tsc --noEmit`).
+- **Typecheck weapp:** `cd packages/weapp && npm run typecheck`.
 - **No lint / formatter / CI is configured.** Do not invent `npm run lint`; only `test` + `typecheck` are authoritative.
+
+## Monorepo Layout
+
+```
+along/
+├── packages/
+│   ├── shared/       @moodly/shared — pure logic (no React deps)
+│   │   ├── types, constants, utils, db adapters, vanilla store
+│   └── weapp/        moodly-weapp — Taro 3.6.7 WeChat Mini Program
+│       ├── src/       app.tsx, pages, components, hooks, db/database
+│       ├── config/    Taro webpack config
+│       └── dist/      build output (open in DevTools)
+├── app/              Expo Router pages
+├── src/              Expo app code (components, hooks, db)
+└── __tests__/        root vitest tests (pure logic)
+```
 
 ## Architecture
 
-Single-screen Expo Router app. Entry chain:
-
+### Expo App (root)
 ```
-app/_layout.tsx           # calls getDb() once on mount (errors are logged, not thrown)
-app/(tabs)/index.tsx      # the only screen — composes MoodCalendar + MoodButtonRow
-src/components/           # MoodCalendar, MoodDayCell, MoodButton, MoodButtonRow, ProgressRing
-src/hooks/                # useCalendarData (db I/O), useLongPress (gesture)
-src/store/moodStore.ts    # zustand: selectedEmotion + mode ('aggregate' | 'single')
-src/db/                   # DbAdapter interface + createSqliteAdapter (native) + createInMemoryAdapter (web + tests)
-src/utils/                # date, color, aggregate, resolveCellColor (pure, fully unit-tested)
-src/constants/emotions.ts # 8-key palette with `order` (tiebreak uses lower order)
+app/_layout.tsx           # calls getDb() once on mount
+app/(tabs)/index.tsx      # composes MoodCalendar + MoodButtonRow
+src/components/           # RN-specific components
+src/hooks/                # useCalendarData, useLongPress
+src/db/                   # database.ts (Expo SQLite), sqliteAdapter.ts
+```
+
+### WeChat Mini Program (`packages/weapp/`)
+```
+src/app.tsx               # Taro app entry (init wxStorage db)
+src/pages/index/          # single screen
+src/components/           # Taro-specific components (Canvas 2D, etc.)
+src/hooks/                # useCalendarData (local copy for Taro)
+src/db/database.ts        # wxStorage-backed DbAdapter
+```
+
+### Shared (`packages/shared/`)
+```
 src/types.ts              # EmotionKey, MoodEntry, CalendarCell, CalendarMode
+src/constants/emotions.ts # 8-key palette
+src/utils/                # date, color, aggregate, resolveCellColor (pure functions)
+src/db/                   # DbAdapter interface, repository, wxStorageAdapter, inMemoryAdapter
+src/store/moodStore.ts    # vanilla zustand createStore (not a React hook)
 ```
 
-- **Path alias:** `@/*` → `./src/*`. Defined in both `tsconfig.json` and `vitest.config.ts` — keep them in sync if you change it.
-- **DB is a singleton** (`src/db/database.ts`). For unit tests, use `__setAdapter(createInMemoryDb())` from the same file, or pass the in-memory adapter directly into repository functions (`addEntry(db, …)`, `getEntriesByDateRange(db, …)`).
-- **Platform-conditional DB selection** in `getDb()`: `Platform.OS === 'web'` → `createInMemoryAdapter()`; otherwise → lazy `require('expo-sqlite')` + `createSqliteAdapter`. The lazy `require` keeps `expo-sqlite` from being evaluated at module load on web, which would throw `Cannot find native module 'ExpoSQLite'`.
-- **Test in-memory fixture** (`src/db/__tests__/inMemoryDb.ts`) is a thin re-export of the production `createInMemoryAdapter` from `src/db/inMemoryAdapter.ts` — keep them in sync, or just extend the production one.
+- **Expo app** uses `@/*` → `./src/*`, **weapp** uses `@/*` → `./src/*` (local) + `@moodly/shared` for shared code.
+- **DB** is platform-specific: Expo uses `expo-sqlite` (native) or `createInMemoryAdapter()` (web); WeChat uses `wx.getStorageSync` via `createWxStorageAdapter()`.
+- **Zustand store** is vanilla in `@moodly/shared`; each app wraps it with `useStore(store, selector)` for React hooks.
+- **Pure functions** (`tickProgress`, `hexToRgb`, etc.) live in `@moodly/shared`.
 
 ## Domain rules that are easy to break
 
