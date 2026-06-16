@@ -11,8 +11,6 @@ module.exports = {
       {
         framework: 'react',
         ts: true,
-        useBuiltIns: 'usage',
-        targets: { ios: '9', android: '5' },
       },
     ],
   ],
