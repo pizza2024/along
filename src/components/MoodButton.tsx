@@ -38,6 +38,8 @@ export function MoodButton({ emotionKey, size, onRecord }: Props) {
         }
       : {};
 
+  if (!Number.isFinite(size) || size <= 0) return null;
+
   return (
     <Pressable
       onPress={() => setSelected(emotionKey)}

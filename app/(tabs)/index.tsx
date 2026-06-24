@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Pressable, Text, Dimensions } from 'react-native';
+import { View, StyleSheet, Pressable, Text, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { VirtualizedMoodCalendar } from '@/components/VirtualizedMoodCalendar';
 import { MoodButtonRow } from '@/components/MoodButtonRow';
@@ -13,8 +13,9 @@ export default function Home() {
   const toggleMode = useMoodStore((s) => s.toggleMode);
   const selected = useMoodStore((s) => s.selectedEmotion);
   const selectedMeta = EMOTION_MAP[selected];
-  const { width } = Dimensions.get('window');
-  const buttonSize = Math.min(64, Math.floor((width - 24) / 8));
+  const { width: rawWidth = 390 } = useWindowDimensions();
+  const width = Math.max(0, Number.isFinite(rawWidth) ? rawWidth : 390);
+  const buttonSize = Math.max(32, Math.min(64, Math.floor((width - 24) / 8)));
 
   return (
     <SafeAreaView style={styles.root}>
