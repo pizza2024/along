@@ -41,6 +41,18 @@ chmod 600 "$DEPLOY_WEB_KEY"
 echo -e "${YELLOW}🚀 Building web export...${NC}"
 npx expo export --platform web
 
+# Inject cache-busting meta tags into index.html to prevent stale HTML caching
+echo -e "${YELLOW}📝 Injecting cache-control meta tags...${NC}"
+if [[ -f ./dist/index.html ]]; then
+  sed -i.bak \
+    's|<meta charSet="utf-8"/>|<meta charSet="utf-8"/>\
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>\
+<meta http-equiv="Pragma" content="no-cache"/>\
+<meta http-equiv="Expires" content="0"/>|' \
+    ./dist/index.html
+  rm -f ./dist/index.html.bak
+fi
+
 echo -e "${YELLOW}📦 Uploading to server...${NC}"
 scp -i "$DEPLOY_WEB_KEY" -o StrictHostKeyChecking=no -r ./dist "${DEPLOY_WEB_USER}@${DEPLOY_WEB_HOST}:/tmp/along-dist"
 
@@ -79,6 +91,12 @@ server {
 
     location / {
         try_files \$uri \$uri/ /index.html;
+    }
+
+    location ~* \.html$ {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        expires 0;
     }
 
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {

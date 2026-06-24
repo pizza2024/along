@@ -14,6 +14,7 @@ interface Props {
   headerHeight: number;
   rowHeight: number;
   horizontalPadding: number;
+  onDayPress?: (date: string) => void;
 }
 
 const TODAY_KEY = () => toDateKey(new Date());
@@ -37,6 +38,7 @@ function MonthGridInner({
   headerHeight,
   rowHeight,
   horizontalPadding,
+  onDayPress,
 }: Props) {
   const slots = useMemo(() => buildSlots(block), [block]);
   const today = TODAY_KEY();
@@ -76,6 +78,7 @@ function MonthGridInner({
                       isToday={cell.date === today}
                       size={cellSize}
                       showDayNumber
+                      onPress={onDayPress}
                     />
                   )}
                 </View>

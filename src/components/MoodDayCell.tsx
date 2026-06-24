@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { resolveCellColor } from '@/utils/resolveCellColor';
 import { useMoodStore } from '@/store/moodStore';
 import type { CalendarCell } from '@/types';
@@ -9,6 +9,7 @@ interface Props {
   isToday?: boolean;
   size?: number;
   showDayNumber?: boolean;
+  onPress?: (date: string) => void;
 }
 
 export function MoodDayCell({
@@ -16,13 +17,14 @@ export function MoodDayCell({
   isToday = false,
   size = 44,
   showDayNumber = false,
+  onPress,
 }: Props) {
   const mode = useMoodStore((s) => s.mode);
   const selectedEmotion = useMoodStore((s) => s.selectedEmotion);
   const bg = resolveCellColor(cell, mode, selectedEmotion);
   const radius = Math.max(4, Math.round(size * 0.22));
   const dayNum = parseInt(cell.date.slice(-2), 10);
-  return (
+  const cellContent = (
     <View
       style={[
         styles.cell,
@@ -48,12 +50,30 @@ export function MoodDayCell({
       )}
     </View>
   );
+
+  if (!onPress) return cellContent;
+
+  return (
+    <Pressable
+      onPress={() => onPress(cell.date)}
+      style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
+    >
+      {cellContent}
+    </Pressable>
+  );
 }
 
 const styles = StyleSheet.create({
   cell: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  pressable: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pressed: {
+    opacity: 0.8,
   },
   today: {
     borderWidth: 1.5,
