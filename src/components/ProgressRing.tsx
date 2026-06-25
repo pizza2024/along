@@ -12,10 +12,11 @@ interface Props {
 }
 
 export function ProgressRing({ size, strokeWidth, progress, color, children, style }: Props) {
-  const r = (size - strokeWidth) / 2;
+  if (!Number.isFinite(size) || size <= 0) return <View style={[{ width: 1, height: 1 }, style]}>{children}</View>;
+  const r = Math.max(0, (size - strokeWidth) / 2);
   const c = 2 * Math.PI * r;
   const clamped = Math.max(0, Math.min(1, progress));
-  const dashOffset = c * (1 - clamped);
+  const visible = c * clamped;
   return (
     <View
       style={[
@@ -31,8 +32,8 @@ export function ProgressRing({ size, strokeWidth, progress, color, children, sty
           stroke={color}
           strokeWidth={strokeWidth}
           fill="none"
-          strokeDasharray={`${c} ${c}`}
-          strokeDashoffset={dashOffset}
+          strokeDasharray={`${visible} ${c}`}
+          strokeDashoffset={0}
           strokeLinecap="round"
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />

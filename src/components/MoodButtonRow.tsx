@@ -43,11 +43,14 @@ export function MoodButtonRow({ buttonSize, onRecord }: Props) {
   const listRef = useRef<FlatList<Row>>(null);
   const lastHapticAtRef = useRef<number | null>(null);
   const hasInitializedRef = useRef(false);
+  const initButtonSizeRef = useRef(buttonSize);
+  if (buttonSize !== initButtonSizeRef.current) {
+    hasInitializedRef.current = false;
+    initButtonSizeRef.current = buttonSize;
+  }
   const lastActiveIdxRef = useRef<number | null>(null);
   const copyLen = EMOTIONS.length;
   const step = buttonSize + ROW_GAP;
-  const dangerLeft = copyLen;
-  const dangerRight = (REPEATS - 1) * copyLen;
 
   const onContentSizeChange = useCallback(() => {
     if (hasInitializedRef.current) return;
@@ -82,24 +85,6 @@ export function MoodButtonRow({ buttonSize, onRecord }: Props) {
       if (buttonSize <= 0) return;
       const offsetX = e.nativeEvent.contentOffset.x;
       const idx = Math.round((offsetX - ROW_PADDING) / step);
-
-      if (idx < dangerLeft || idx >= dangerRight) {
-        const result = computeInfiniteWrap(
-          offsetX,
-          copyLen,
-          step,
-          ROW_PADDING,
-          REPEATS
-        );
-        if (result.needsWrap) {
-          listRef.current?.scrollToOffset({
-            offset: result.nextOffset,
-            animated: false,
-          });
-        }
-        return;
-      }
-
       const prev = lastActiveIdxRef.current;
       if (prev === idx) return;
       lastActiveIdxRef.current = idx;
@@ -110,7 +95,7 @@ export function MoodButtonRow({ buttonSize, onRecord }: Props) {
         }
       }
     },
-    [buttonSize, copyLen, dangerLeft, dangerRight, step]
+    [buttonSize, step]
   );
 
   const renderItem = useCallback(
@@ -146,6 +131,7 @@ export function MoodButtonRow({ buttonSize, onRecord }: Props) {
       onScroll={onScroll}
       onMomentumScrollEnd={onMomentumScrollEnd}
       onContentSizeChange={onContentSizeChange}
+      extraData={buttonSize}
       scrollEventThrottle={16}
       initialNumToRender={copyLen * 3}
       windowSize={5}

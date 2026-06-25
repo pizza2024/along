@@ -1,20 +1,39 @@
-import React from 'react';
-import { View, StyleSheet, Pressable, Text, Dimensions } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, StyleSheet, Pressable, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { VirtualizedMoodCalendar } from '@/components/VirtualizedMoodCalendar';
-import { MoodButtonRow } from '@/components/MoodButtonRow';
+import { MoodPickerSheet } from '@/components/MoodPickerSheet';
 import { useCalendarData } from '@/hooks/useCalendarData';
 import { useMoodStore } from '@/store/moodStore';
 import { EMOTION_MAP } from '@/constants/emotions';
+import type { EmotionKey } from '@/types';
 
 export default function Home() {
   const { blocks, currentMonthIndex, addEmotion, extendPast, extendFuture } = useCalendarData();
   const mode = useMoodStore((s) => s.mode);
   const toggleMode = useMoodStore((s) => s.toggleMode);
   const selected = useMoodStore((s) => s.selectedEmotion);
+  const setSelected = useMoodStore((s) => s.setSelectedEmotion);
   const selectedMeta = EMOTION_MAP[selected];
-  const { width } = Dimensions.get('window');
-  const buttonSize = Math.min(64, Math.floor((width - 24) / 8));
+
+  const [sheetDate, setSheetDate] = useState<string | null>(null);
+
+  const handleDayPress = useCallback((date: string) => {
+    setSheetDate(date);
+  }, []);
+
+  const handleCloseSheet = useCallback(() => {
+    setSheetDate(null);
+  }, []);
+
+  const handleRecord = useCallback(
+    async (emotion: EmotionKey) => {
+      if (!sheetDate) return;
+      await addEmotion(emotion, sheetDate);
+      setSelected(emotion);
+    },
+    [sheetDate, addEmotion, setSelected]
+  );
 
   return (
     <SafeAreaView style={styles.root}>
@@ -45,14 +64,16 @@ export default function Home() {
           todayIndex={currentMonthIndex}
           onExtendPast={extendPast}
           onExtendFuture={extendFuture}
+          onDayPress={handleDayPress}
         />
       </View>
 
-      <View style={styles.divider} />
-
-      <View style={styles.buttonsWrap}>
-        <MoodButtonRow buttonSize={buttonSize} onRecord={addEmotion} />
-      </View>
+      <MoodPickerSheet
+        visible={sheetDate !== null}
+        date={sheetDate ?? ''}
+        onClose={handleCloseSheet}
+        onRecord={handleRecord}
+      />
     </SafeAreaView>
   );
 }
@@ -89,11 +110,5 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.6 },
   modeIcon: { fontSize: 20, color: '#666' },
   modeHint: { fontSize: 10, color: '#999', letterSpacing: 0.5 },
-  calendarWrap: { flex: 3 },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: '#E5E5E5',
-    marginHorizontal: 24,
-  },
-  buttonsWrap: { flex: 1, justifyContent: 'center' },
+  calendarWrap: { flex: 1 },
 });

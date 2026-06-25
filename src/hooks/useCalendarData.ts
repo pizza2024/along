@@ -63,9 +63,9 @@ export function useCalendarData(options: UseCalendarDataOptions = {}) {
   }, [refresh]);
 
   const addEmotion = useCallback(
-    async (emotion: EmotionKey) => {
+    async (emotion: EmotionKey, date: string = toDateKey(new Date())) => {
       const db = await getDb();
-      await repoAdd(db, emotion, toDateKey(new Date()));
+      await repoAdd(db, emotion, date);
       await refresh();
     },
     [refresh]

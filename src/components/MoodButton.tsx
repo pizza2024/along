@@ -38,6 +38,8 @@ export function MoodButton({ emotionKey, size, onRecord }: Props) {
         }
       : {};
 
+  if (!Number.isFinite(size) || size <= 0) return null;
+
   return (
     <Pressable
       onPress={() => setSelected(emotionKey)}
@@ -68,5 +70,5 @@ export function MoodButton({ emotionKey, size, onRecord }: Props) {
 const styles = StyleSheet.create({
   touch: { alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.85 },
-  square: { width: '70%', height: '70%', borderRadius: 14, borderWidth: 2 },
+  square: { width: '70%', height: '70%', borderRadius: 6, borderWidth: 2 },
 });

@@ -9,7 +9,10 @@
     "web": "expo start --web",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "deploy:web": "bash scripts/deploy-web.sh",
+    "deploy:web:prod": "bash scripts/deploy-web.sh prod",
+    "deploy:web:dev": "bash scripts/deploy-web.sh dev"
   },
   "dependencies": {
     "@moodly/shared": "workspace:*",

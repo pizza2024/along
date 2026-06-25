@@ -48,6 +48,7 @@ interface Props {
   todayIndex: number;
   onExtendPast?: (count: number) => void;
   onExtendFuture?: (count: number) => void;
+  onDayPress?: (date: string) => void;
 }
 
 export function VirtualizedMoodCalendar({
@@ -56,6 +57,7 @@ export function VirtualizedMoodCalendar({
   todayIndex,
   onExtendPast,
   onExtendFuture,
+  onDayPress,
 }: Props) {
   const [viewport, setViewport] = useState(() => {
     const { width } = Dimensions.get('window');
@@ -150,10 +152,11 @@ export function VirtualizedMoodCalendar({
           headerHeight={HEADER_HEIGHT}
           rowHeight={rowHeight}
           horizontalPadding={HORIZONTAL_PADDING}
+          onDayPress={onDayPress}
         />
       </View>
     ),
-    [activeIndex, cellSize, monthHeight, rowHeight]
+    [activeIndex, cellSize, monthHeight, rowHeight, onDayPress]
   );
 
   const keyExtractor = useCallback((b: MonthBlock) => b.meta.key, []);
