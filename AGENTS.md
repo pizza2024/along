@@ -36,8 +36,8 @@ along/
 ### Expo App (root)
 ```
 app/_layout.tsx           # calls getDb() once on mount
-app/(tabs)/index.tsx      # composes MoodCalendar + MoodButtonRow
-src/components/           # RN-specific components
+app/(tabs)/index.tsx      # full-screen VirtualizedMoodCalendar + MoodPickerSheet
+src/components/           # RN-specific components incl. MoodPickerSheet
 src/hooks/                # useCalendarData, useLongPress
 src/db/                   # database.ts (Expo SQLite), sqliteAdapter.ts
 ```
@@ -45,8 +45,8 @@ src/db/                   # database.ts (Expo SQLite), sqliteAdapter.ts
 ### WeChat Mini Program (`packages/weapp/`)
 ```
 src/app.tsx               # Taro app entry (init wxStorage db)
-src/pages/index/          # single screen
-src/components/           # Taro-specific components (Canvas 2D, etc.)
+src/pages/index/          # single screen: full-screen calendar + picker sheet
+src/components/           # Taro-specific components incl. MoodPickerSheet
 src/hooks/                # useCalendarData (local copy for Taro)
 src/db/database.ts        # wxStorage-backed DbAdapter
 ```
@@ -61,6 +61,7 @@ src/store/moodStore.ts    # vanilla zustand createStore (not a React hook)
 ```
 
 - **Expo app** uses `@/*` → `./src/*`, **weapp** uses `@/*` → `./src/*` (local) + `@moodly/shared` for shared code.
+- Both apps share the same interaction model: a full-screen virtualized month calendar; tapping any day opens a `MoodPickerSheet` to record an emotion for that date. The fixed bottom button row has been replaced by the sheet.
 - **DB** is platform-specific: Expo uses `expo-sqlite` (native) or `createInMemoryAdapter()` (web); WeChat uses `wx.getStorageSync` via `createWxStorageAdapter()`.
 - **Zustand store** is vanilla in `@moodly/shared`; each app wraps it with `useStore(store, selector)` for React hooks.
 - **Pure functions** (`tickProgress`, `hexToRgb`, etc.) live in `@moodly/shared`.
@@ -95,7 +96,8 @@ src/store/moodStore.ts    # vanilla zustand createStore (not a React hook)
 
 - `app/(tabs)/index.tsx` is the only route — adding new screens means adding new files under `app/` (expo-router file-based).
 - `experiments.typedRoutes` is enabled in `app.json` — generated route types live in `.expo/types/`. If a route import breaks, run `npx expo customize tsconfig.json` or just `npx expo start` once to regenerate.
-- Button row width: `Math.min(72, Math.floor((width - 32) / 8))` in `app/(tabs)/index.tsx`. On screens narrower than ~320pt the row scrolls horizontally — known limitation, not a bug.
-- `useCalendarData().addEmotion` always writes to **today** (last element of `last30Days()`). It does not accept a date parameter.
+- Button row appears inside `MoodPickerSheet`, not as a fixed bottom bar. Its width is computed within the sheet grid on Expo and via rpx layout on weapp.
+- `useCalendarData().addEmotion(emotion, date?)` writes to the provided `date` (local-time `YYYY-MM-DD`); when omitted it falls back to today. The calendar day press supplies the date to the `MoodPickerSheet`.
+- `MoodButtonRow` uses an infinite horizontal loop (5 copies of the 8 emotions) with boundary-wrap logic from `@moodly/shared` (`computeInfiniteWrap` / `buildInfiniteRows`).
 - **Web in-memory adapter is process-local** — data is lost on page reload. Persist with `localStorage`/`IndexedDB` if web persistence is needed.
 - **`app/_layout.tsx` installs a `console.warn` filter** at module top-level to silence `react-native-web`'s `Image: style.resizeMode is deprecated` warning (emitted by `expo-router`'s internal web render). All other warnings still print.

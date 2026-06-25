@@ -10,6 +10,7 @@ interface Props {
   isToday?: boolean;
   size?: number;
   showDayNumber?: boolean;
+  onPress?: (date: string) => void;
 }
 
 export function MoodDayCell({
@@ -17,13 +18,14 @@ export function MoodDayCell({
   isToday = false,
   size = 44,
   showDayNumber = false,
+  onPress,
 }: Props) {
   const mode = useMoodStore((s) => s.mode);
   const selectedEmotion = useMoodStore((s) => s.selectedEmotion);
   const bg = resolveCellColor(cell, mode, selectedEmotion);
   const radius = Math.max(4, Math.round(size * 0.22));
   const dayNum = parseInt(cell.date.slice(-2), 10);
-  return (
+  const cellContent = (
     <View
       style={{
         width: `${size}rpx`,
@@ -48,6 +50,14 @@ export function MoodDayCell({
           {dayNum}
         </Text>
       )}
+    </View>
+  );
+
+  if (!onPress) return cellContent;
+
+  return (
+    <View onClick={() => onPress(cell.date)} style={{ alignItems: 'center', justifyContent: 'center' }}>
+      {cellContent}
     </View>
   );
 }

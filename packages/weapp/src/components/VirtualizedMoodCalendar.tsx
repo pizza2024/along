@@ -29,6 +29,7 @@ interface Props {
   todayIndex: number;
   onExtendPast?: (count: number) => void;
   onExtendFuture?: (count: number) => void;
+  onDayPress?: (date: string) => void;
 }
 
 export function VirtualizedMoodCalendar({
@@ -37,6 +38,7 @@ export function VirtualizedMoodCalendar({
   todayIndex,
   onExtendPast,
   onExtendFuture,
+  onDayPress,
 }: Props) {
   const [viewport] = useState(() => {
     const info = Taro.getSystemInfoSync();
@@ -46,7 +48,7 @@ export function VirtualizedMoodCalendar({
   const layout = useMemo(() => computeLayout(), []);
   const { cellSize, rowHeight, monthHeight } = layout;
 
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
   const extendingPastRef = useRef(false);
   const extendingFutureRef = useRef(false);
   const prevBlocksLenRef = useRef(blocks.length);
@@ -66,6 +68,14 @@ export function VirtualizedMoodCalendar({
       extendingFutureRef.current = false;
     }
   }, [activeIndex, blocks.length]);
+
+  // Scroll to initial month on first render
+  useEffect(() => {
+    const ratio = 750 / viewport.width;
+    const targetPx = (initialIndex * monthHeight) / ratio;
+    Taro.pageScrollTo({ scrollTop: Math.round(targetPx), duration: 0 });
+    // Only run once on mount to position the calendar at the initial month.
+  }, []);
 
   // Compensate scroll tracking when months are prepended
   useEffect(() => {
@@ -123,6 +133,16 @@ export function VirtualizedMoodCalendar({
     }
   }, [activeIndex, blocks.length, onExtendPast, onExtendFuture]);
 
+  const scrollToToday = useCallback(() => {
+    const safeTodayIndex = Math.min(Math.max(todayIndex, 0), Math.max(blocks.length - 1, 0));
+    const ratio = 750 / viewport.width;
+    const targetPx = (safeTodayIndex * monthHeight) / ratio;
+    Taro.pageScrollTo({ scrollTop: Math.round(targetPx), duration: 250 });
+  }, [todayIndex, blocks.length, monthHeight, viewport.width]);
+
+  const showTodayButton = activeIndex !== todayIndex;
+  const direction = activeIndex < todayIndex ? '↓' : '↑';
+
   return (
     <View>
       <View
@@ -164,10 +184,38 @@ export function VirtualizedMoodCalendar({
               headerHeight={HEADER_HEIGHT}
               rowHeight={rowHeight}
               horizontalPadding={HORIZONTAL_PADDING}
+              onDayPress={onDayPress}
             />
           </View>
         </View>
       ))}
+      {showTodayButton && (
+        <View
+          onClick={scrollToToday}
+          style={{
+            position: 'fixed',
+            right: '32rpx',
+            bottom: '32rpx',
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingLeft: '24rpx',
+            paddingRight: '24rpx',
+            paddingTop: '16rpx',
+            paddingBottom: '16rpx',
+            borderRadius: '40rpx',
+            backgroundColor: '#1A1A1A',
+            zIndex: 100,
+          }}
+        >
+          <Text style={{ color: '#FAFAFA', fontSize: '28rpx', fontWeight: '600', marginRight: '8rpx' }}>
+            {direction}
+          </Text>
+          <Text style={{ color: '#FAFAFA', fontSize: '26rpx', fontWeight: '600', letterSpacing: '1rpx' }}>
+            今天
+          </Text>
+        </View>
+      )}
     </View>
   );
 }

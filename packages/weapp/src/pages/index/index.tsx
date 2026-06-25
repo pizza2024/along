@@ -1,30 +1,49 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { VirtualizedMoodCalendar } from '@/components/VirtualizedMoodCalendar';
-import { MoodButtonRow } from '@/components/MoodButtonRow';
+import { MoodPickerSheet } from '@/components/MoodPickerSheet';
 import { useCalendarData } from '@/hooks/useCalendarData';
 import { useMoodStore } from '@/store/moodStore';
 import { EMOTION_MAP } from '@moodly/shared';
+import type { EmotionKey } from '@moodly/shared';
 
 export default function Home() {
   const { blocks, currentMonthIndex, addEmotion, extendPast, extendFuture } = useCalendarData();
   const mode = useMoodStore((s) => s.mode);
   const toggleMode = useMoodStore((s) => s.toggleMode);
   const selected = useMoodStore((s) => s.selectedEmotion);
+  const setSelected = useMoodStore((s) => s.setSelectedEmotion);
   const selectedMeta = EMOTION_MAP[selected];
 
+  const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [width, setWidth] = useState(375);
+
   useEffect(() => {
     try { setWidth(Taro.getSystemInfoSync().windowWidth); } catch { /* */ }
   }, []);
 
-  const buttonSize = Math.floor((750 - 48) / 8);
+  const handleDayPress = useCallback((date: string) => {
+    setSheetDate(date);
+  }, []);
+
+  const handleCloseSheet = useCallback(() => {
+    setSheetDate(null);
+  }, []);
+
+  const handleRecord = useCallback(
+    async (emotion: EmotionKey) => {
+      if (!sheetDate) return;
+      await addEmotion(emotion, sheetDate);
+      setSelected(emotion);
+    },
+    [sheetDate, addEmotion, setSelected]
+  );
+
   const headerH = Math.round(140 * (width / 750));
-  const bottomH = Math.round(90 * (width / 750));
 
   return (
-    <View style={{ backgroundColor: '#FAFAFA', minHeight: '100vh', paddingTop: `${headerH}px`, paddingBottom: `${bottomH}px` }}>
+    <View style={{ backgroundColor: '#FAFAFA', minHeight: '100vh', paddingTop: `${headerH}px` }}>
       {/* Fixed header */}
       <View
         style={{
@@ -79,24 +98,15 @@ export default function Home() {
         todayIndex={currentMonthIndex}
         onExtendPast={extendPast}
         onExtendFuture={extendFuture}
+        onDayPress={handleDayPress}
       />
 
-      {/* Fixed bottom bar */}
-      <View
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: '#FAFAFA',
-          zIndex: 100,
-        }}
-      >
-        <View style={{ height: '1rpx', backgroundColor: '#E5E5E5', marginLeft: '48rpx', marginRight: '48rpx' }} />
-        <View style={{ height: '88rpx', justifyContent: 'center' }}>
-          <MoodButtonRow buttonSize={buttonSize} onRecord={addEmotion} />
-        </View>
-      </View>
+      <MoodPickerSheet
+        visible={sheetDate !== null}
+        date={sheetDate ?? ''}
+        onClose={handleCloseSheet}
+        onRecord={handleRecord}
+      />
     </View>
   );
 }
