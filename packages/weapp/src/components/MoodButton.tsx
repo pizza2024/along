@@ -98,6 +98,7 @@ export function MoodButton({ emotionKey, size, onRecord }: Props) {
       style={{
         width: `${size}rpx`,
         height: `${size}rpx`,
+        display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',

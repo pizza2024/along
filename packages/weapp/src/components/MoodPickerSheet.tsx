@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, ScrollView } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { EMOTIONS } from '@moodly/shared';
@@ -15,22 +15,10 @@ const SHEET_HEIGHT_RPX = 720;
 const GRID_GAP_RPX = 24;
 const GRID_PADDING_RPX = 48;
 const BUTTON_HEIGHT_RPX = 192;
+// 固定计算：(750 - 48*2 - 24*3) / 4 = 145
+const BUTTON_WIDTH_RPX = 145;
 
 export function MoodPickerSheet({ visible, date, onClose, onRecord }: Props) {
-  const [buttonWidth, setButtonWidth] = useState(150);
-
-  useEffect(() => {
-    try {
-      const info = Taro.getSystemInfoSync();
-      const pxWidth = info.windowWidth;
-      const rpxWidth = (pxWidth / info.windowWidth) * 750;
-      const width = rpxWidth || 750;
-      setButtonWidth(Math.floor((width - GRID_PADDING_RPX * 2 - GRID_GAP_RPX * 3) / 4));
-    } catch {
-      setButtonWidth(150);
-    }
-  }, []);
-
   const handleRecord = useCallback(
     async (emotion: EmotionKey) => {
       try {
@@ -53,6 +41,8 @@ export function MoodPickerSheet({ visible, date, onClose, onRecord }: Props) {
   }, []);
 
   if (!visible) return null;
+
+  const rows = Math.ceil(EMOTIONS.length / 4);
 
   return (
     <View
@@ -89,6 +79,7 @@ export function MoodPickerSheet({ visible, date, onClose, onRecord }: Props) {
           overflow: 'hidden',
         }}
       >
+        {/* Drag handle */}
         <View
           style={{
             height: '88rpx',
@@ -105,17 +96,23 @@ export function MoodPickerSheet({ visible, date, onClose, onRecord }: Props) {
             }}
           />
         </View>
-        <Text
+        {/* Title — 用 View 包裹确保居中 */}
+        <View
           style={{
-            fontSize: '36rpx',
-            fontWeight: '600',
-            color: '#1A1A1A',
-            textAlign: 'center',
+            alignItems: 'center',
             marginBottom: '16rpx',
           }}
         >
-          {formatDate(date)}
-        </Text>
+          <Text
+            style={{
+              fontSize: '36rpx',
+              fontWeight: '600',
+              color: '#1A1A1A',
+            }}
+          >
+            {formatDate(date)}
+          </Text>
+        </View>
         <ScrollView
           scrollY
           style={{ height: `${SHEET_HEIGHT_RPX - 160}rpx` }}
@@ -123,47 +120,56 @@ export function MoodPickerSheet({ visible, date, onClose, onRecord }: Props) {
         >
           <View
             style={{
-              display: 'flex',
-              flexDirection: 'row',
-              flexWrap: 'wrap',
               paddingLeft: `${GRID_PADDING_RPX}rpx`,
               paddingRight: `${GRID_PADDING_RPX}rpx`,
               paddingBottom: `${GRID_PADDING_RPX}rpx`,
             }}
           >
-            {EMOTIONS.map((emotion) => (
+            {Array.from({ length: rows }, (_, row) => (
               <View
-                key={emotion.key}
-                onClick={() => handleRecord(emotion.key)}
+                key={row}
                 style={{
-                  width: `${buttonWidth}rpx`,
-                  height: `${BUTTON_HEIGHT_RPX}rpx`,
-                  marginRight: `${GRID_GAP_RPX}rpx`,
-                  marginBottom: `${GRID_GAP_RPX}rpx`,
-                  borderRadius: '32rpx',
-                  backgroundColor: `${emotion.color}18`,
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  display: 'flex',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginBottom: row < rows - 1 ? `${GRID_GAP_RPX}rpx` : 0,
                 }}
               >
-                <View
-                  style={{
-                    width: '88rpx',
-                    height: '88rpx',
-                    borderRadius: '24rpx',
-                    backgroundColor: emotion.color,
-                    marginBottom: '16rpx',
-                  }}
-                />
-                <Text
-                  style={{
-                    fontSize: '28rpx',
-                    fontWeight: '500',
-                    color: '#333333',
-                  }}
-                >
-                  {emotion.label}
-                </Text>
+                {EMOTIONS.slice(row * 4, row * 4 + 4).map((emotion) => (
+                  <View
+                    key={emotion.key}
+                    onClick={() => handleRecord(emotion.key)}
+                    style={{
+                      width: `${BUTTON_WIDTH_RPX}rpx`,
+                      height: `${BUTTON_HEIGHT_RPX}rpx`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      borderRadius: '32rpx',
+                      backgroundColor: `${emotion.color}18`,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: '88rpx',
+                        height: '88rpx',
+                        borderRadius: '24rpx',
+                        backgroundColor: emotion.color,
+                        marginBottom: '16rpx',
+                      }}
+                    />
+                    <Text
+                      style={{
+                        fontSize: '28rpx',
+                        fontWeight: '500',
+                        color: '#333333',
+                      }}
+                    >
+                      {emotion.label}
+                    </Text>
+                  </View>
+                ))}
               </View>
             ))}
           </View>

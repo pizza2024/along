@@ -30,6 +30,7 @@ export function MoodDayCell({
       style={{
         width: `${size}rpx`,
         height: `${size}rpx`,
+        display: 'flex',
         borderRadius: `${radius}rpx`,
         backgroundColor: bg,
         alignItems: 'center',
@@ -37,6 +38,7 @@ export function MoodDayCell({
         borderWidth: isToday ? '1.5rpx' : '0',
         borderColor: isToday ? '#1A1A1A' : 'transparent',
         borderStyle: isToday ? 'solid' : 'none',
+        boxSizing: 'border-box',
       }}
     >
       {showDayNumber && (
@@ -56,7 +58,14 @@ export function MoodDayCell({
   if (!onPress) return cellContent;
 
   return (
-    <View onClick={() => onPress(cell.date)} style={{ alignItems: 'center', justifyContent: 'center' }}>
+    <View
+      onClick={() => onPress(cell.date)}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
       {cellContent}
     </View>
   );
