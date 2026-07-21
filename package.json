@@ -15,7 +15,6 @@
     "deploy:web:dev": "bash scripts/deploy-web.sh dev"
   },
   "dependencies": {
-    "@moodly/shared": "workspace:*",
     "expo": "~54.0.0",
     "expo-constants": "~18.0.13",
     "expo-haptics": "~15.0.8",

@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Pressable, Text } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { View, StyleSheet, Pressable, Text, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { VirtualizedMoodCalendar } from '@/components/VirtualizedMoodCalendar';
 import { MoodPickerSheet } from '@/components/MoodPickerSheet';
 import { useCalendarData } from '@/hooks/useCalendarData';
@@ -9,7 +10,7 @@ import { EMOTION_MAP } from '@/constants/emotions';
 import type { EmotionKey } from '@/types';
 
 export default function Home() {
-  const { blocks, currentMonthIndex, addEmotion, extendPast, extendFuture } = useCalendarData();
+  const { blocks, currentMonthIndex, entries, addEmotion, removeEmotion, extendPast, extendFuture } = useCalendarData();
   const mode = useMoodStore((s) => s.mode);
   const toggleMode = useMoodStore((s) => s.toggleMode);
   const selected = useMoodStore((s) => s.selectedEmotion);
@@ -18,7 +19,15 @@ export default function Home() {
 
   const [sheetDate, setSheetDate] = useState<string | null>(null);
 
+  const sheetEntries = useMemo(
+    () => (sheetDate ? entries.filter((e) => e.date === sheetDate) : []),
+    [entries, sheetDate]
+  );
+
   const handleDayPress = useCallback((date: string) => {
+    if (Platform.OS !== 'web') {
+      Haptics.selectionAsync().catch(() => {});
+    }
     setSheetDate(date);
   }, []);
 
@@ -71,8 +80,10 @@ export default function Home() {
       <MoodPickerSheet
         visible={sheetDate !== null}
         date={sheetDate ?? ''}
+        entries={sheetEntries}
         onClose={handleCloseSheet}
         onRecord={handleRecord}
+        onDelete={removeEmotion}
       />
     </SafeAreaView>
   );

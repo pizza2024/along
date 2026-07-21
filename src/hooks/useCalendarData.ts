@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getDb } from '@/db/database';
-import { addEntry as repoAdd, getEntriesByDateRange } from '@/db/repository';
+import { addEntry as repoAdd, deleteEntry as repoDelete, getEntriesByDateRange } from '@/db/repository';
 import { buildCalendarCells } from '@/utils/aggregate';
 import { toDateKey } from '@/utils/date';
 import {
@@ -71,6 +71,15 @@ export function useCalendarData(options: UseCalendarDataOptions = {}) {
     [refresh]
   );
 
+  const removeEmotion = useCallback(
+    async (id: number) => {
+      const db = await getDb();
+      await repoDelete(db, id);
+      await refresh();
+    },
+    [refresh]
+  );
+
   const extendPast = useCallback((count: number = 12) => {
     if (count <= 0) return;
     setPastMonths((p) => p + count);
@@ -86,8 +95,10 @@ export function useCalendarData(options: UseCalendarDataOptions = {}) {
     months,
     currentMonthIndex,
     loading,
+    entries,
     refresh,
     addEmotion,
+    removeEmotion,
     extendPast,
     extendFuture,
   };

@@ -13,6 +13,7 @@ import {
   FlatList,
   StyleSheet,
   Dimensions,
+  Platform,
 } from 'react-native';
 import type {
   ListRenderItemInfo,
@@ -20,7 +21,9 @@ import type {
   NativeSyntheticEvent,
   LayoutChangeEvent,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { MonthGrid } from './MonthGrid';
+import { shouldFireScrollHaptic } from '@/utils/scrollHaptic';
 import type { MonthBlock } from '@/hooks/useCalendarData';
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'] as const;
@@ -76,6 +79,8 @@ export function VirtualizedMoodCalendar({
   const prevLengthRef = useRef(0);
   const extendingPastRef = useRef(false);
   const extendingFutureRef = useRef(false);
+  const prevHapticIndexRef = useRef<number | null>(null);
+  const lastHapticMsRef = useRef<number | null>(null);
 
   const onContainerLayout = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
@@ -95,7 +100,17 @@ export function VirtualizedMoodCalendar({
       scrollOffsetRef.current = offsetY;
       const idx = Math.round(offsetY / monthHeight);
       const clamped = Math.min(Math.max(idx, 0), blocks.length - 1);
-      if (clamped !== activeIndex) setActiveIndex(clamped);
+      if (clamped !== activeIndex) {
+        setActiveIndex(clamped);
+        if (
+          Platform.OS !== 'web' &&
+          shouldFireScrollHaptic(prevHapticIndexRef.current, clamped, Date.now(), lastHapticMsRef.current)
+        ) {
+          lastHapticMsRef.current = Date.now();
+          Haptics.selectionAsync().catch(() => {});
+        }
+        prevHapticIndexRef.current = clamped;
+      }
     },
     [activeIndex, blocks.length, monthHeight]
   );

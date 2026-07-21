@@ -1,33 +1,57 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import { EMOTIONS } from '@moodly/shared';
-import type { EmotionKey } from '@moodly/shared';
+import { EMOTIONS, EMOTION_MAP } from '@moodly/shared';
+import type { EmotionKey, MoodEntry } from '@moodly/shared';
 
 interface Props {
   visible: boolean;
   date: string;
+  entries: MoodEntry[];
   onClose: () => void;
   onRecord: (emotion: EmotionKey) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
 }
 
-const SHEET_HEIGHT_RPX = 720;
+const SHEET_HEIGHT_RPX = 760;
 const GRID_GAP_RPX = 24;
 const GRID_PADDING_RPX = 48;
 const BUTTON_HEIGHT_RPX = 192;
 // 固定计算：(750 - 48*2 - 24*3) / 4 = 145
 const BUTTON_WIDTH_RPX = 145;
+const ANIMATION_MS = 220;
 
-export function MoodPickerSheet({ visible, date, onClose, onRecord }: Props) {
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'] as const;
+
+function vibrate(type: 'light' | 'medium') {
+  try {
+    Taro.vibrateShort({ type });
+  } catch {
+    /* no haptics in devtools */
+  }
+}
+
+export function MoodPickerSheet({ visible, date, entries, onClose, onRecord, onDelete }: Props) {
+  // rendered 控制挂载，open 控制过渡终态 —— 让关场动画跑完再 unmount
+  const [rendered, setRendered] = useState(visible);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setRendered(true);
+      const t = setTimeout(() => setOpen(true), 20);
+      return () => clearTimeout(t);
+    }
+    setOpen(false);
+    const t = setTimeout(() => setRendered(false), ANIMATION_MS);
+    return () => clearTimeout(t);
+  }, [visible]);
+
   const handleRecord = useCallback(
     async (emotion: EmotionKey) => {
       try {
         await onRecord(emotion);
-        try {
-          Taro.vibrateShort({ type: 'medium' });
-        } catch {
-          /* no haptics in devtools */
-        }
+        vibrate('medium');
       } finally {
         onClose();
       }
@@ -35,12 +59,28 @@ export function MoodPickerSheet({ visible, date, onClose, onRecord }: Props) {
     [onRecord, onClose]
   );
 
+  const handleDelete = useCallback(
+    async (id: number) => {
+      await onDelete(id);
+      vibrate('light');
+    },
+    [onDelete]
+  );
+
   const formatDate = useCallback((dateKey: string) => {
     const [y, m, d] = dateKey.split('-').map(Number);
-    return `${y}年${m}月${d}日`;
+    const weekday = WEEKDAYS[new Date(y, m - 1, d).getDay()];
+    return `${y}年${m}月${d}日 · 周${weekday}`;
   }, []);
 
-  if (!visible) return null;
+  const formatTime = useCallback((ts: number) => {
+    const d = new Date(ts);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
+  }, []);
+
+  if (!rendered) return null;
 
   const rows = Math.ceil(EMOTIONS.length / 4);
 
@@ -64,6 +104,8 @@ export function MoodPickerSheet({ visible, date, onClose, onRecord }: Props) {
           right: 0,
           bottom: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.35)',
+          opacity: open ? 1 : 0,
+          transition: `opacity ${ANIMATION_MS}ms ease`,
         }}
       />
       <View
@@ -77,6 +119,8 @@ export function MoodPickerSheet({ visible, date, onClose, onRecord }: Props) {
           borderTopLeftRadius: '48rpx',
           borderTopRightRadius: '48rpx',
           overflow: 'hidden',
+          transform: open ? 'translateY(0)' : 'translateY(100%)',
+          transition: `transform ${ANIMATION_MS}ms ease`,
         }}
       >
         {/* Drag handle */}
@@ -113,9 +157,72 @@ export function MoodPickerSheet({ visible, date, onClose, onRecord }: Props) {
             {formatDate(date)}
           </Text>
         </View>
+        {entries.length > 0 && (
+          <View
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              paddingLeft: `${GRID_PADDING_RPX}rpx`,
+              paddingRight: `${GRID_PADDING_RPX}rpx`,
+              marginBottom: '24rpx',
+            }}
+          >
+            {entries.map((entry) => {
+              const meta = EMOTION_MAP[entry.emotion];
+              return (
+                <View
+                  key={entry.id}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingLeft: '20rpx',
+                    paddingRight: '12rpx',
+                    paddingTop: '12rpx',
+                    paddingBottom: '12rpx',
+                    borderRadius: '32rpx',
+                    backgroundColor: '#F4F4F4',
+                    marginRight: '16rpx',
+                    marginBottom: '16rpx',
+                  }}
+                >
+                  <View
+                    style={{
+                      width: '16rpx',
+                      height: '16rpx',
+                      borderRadius: '8rpx',
+                      backgroundColor: meta.color,
+                      marginRight: '12rpx',
+                    }}
+                  />
+                  <Text style={{ fontSize: '26rpx', fontWeight: '500', color: '#333', marginRight: '12rpx' }}>
+                    {meta.label}
+                  </Text>
+                  <Text style={{ fontSize: '24rpx', color: '#999', marginRight: '12rpx' }}>
+                    {formatTime(entry.createdAt)}
+                  </Text>
+                  <View
+                    onClick={() => handleDelete(entry.id)}
+                    style={{
+                      width: '40rpx',
+                      height: '40rpx',
+                      borderRadius: '20rpx',
+                      backgroundColor: '#E4E4E4',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={{ fontSize: '26rpx', lineHeight: '32rpx', color: '#777' }}>×</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
         <ScrollView
           scrollY
-          style={{ height: `${SHEET_HEIGHT_RPX - 160}rpx` }}
+          style={{ height: `${SHEET_HEIGHT_RPX - 160 - (entries.length > 0 ? 100 : 0)}rpx` }}
           showScrollbar={false}
         >
           <View

@@ -60,6 +60,7 @@ export function MoodDayCell({
   return (
     <View
       onClick={() => onPress(cell.date)}
+      hoverStyle={{ opacity: 0.8, transform: 'scale(0.92)' }}
       style={{
         display: 'flex',
         alignItems: 'center',
